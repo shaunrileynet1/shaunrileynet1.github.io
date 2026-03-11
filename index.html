@@ -8,7 +8,7 @@
 <meta name="googlebot" content="noindex, noarchive, nosnippet, noimageindex">
 <meta name="description" content="">
 <meta http-equiv="X-Robots-Tag" content="noindex, noarchive, nosnippet, noimageindex">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; script-src 'none'; object-src 'none'; base-uri 'none'; frame-ancestors 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; script-src 'unsafe-inline'; object-src 'none'; base-uri 'none'; frame-ancestors 'none';">
 <meta name="referrer" content="no-referrer">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital@0;1&display=swap" rel="stylesheet">
 <style>
@@ -35,12 +35,22 @@
     color: var(--text);
   }
 
+  /* ── Terminal window ── */
   .terminal {
     background: var(--surface);
     border: 1px solid var(--border);
     width: 100%;
     max-width: 560px;
     animation: fadeIn 0.5s ease both;
+    transition:
+      width 0.35s cubic-bezier(0.4,0,0.2,1),
+      max-width 0.35s cubic-bezier(0.4,0,0.2,1),
+      height 0.35s cubic-bezier(0.4,0,0.2,1),
+      opacity 0.25s ease,
+      transform 0.35s cubic-bezier(0.4,0,0.2,1),
+      border-radius 0.35s ease;
+    overflow: hidden;
+    position: relative;
   }
 
   @keyframes fadeIn {
@@ -48,21 +58,106 @@
     to   { opacity: 1; transform: translateY(0); }
   }
 
+  /* ── Minimized state ── */
+  .terminal.minimized .body {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    opacity: 0;
+  }
+  .terminal.minimized {
+    max-width: 240px;
+  }
+
+  /* ── Maximized state ── */
+  .terminal.maximized {
+    position: fixed;
+    inset: 0;
+    max-width: 100vw;
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+    border: none;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+  }
+  .terminal.maximized .body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  /* ── Closed / session-ended state ── */
+  .terminal.closed {
+    opacity: 0;
+    transform: scale(0.92);
+    pointer-events: none;
+  }
+  .session-ended {
+    display: none;
+    font-size: 0.75rem;
+    color: var(--dim);
+    text-align: center;
+    font-family: 'DM Mono', monospace;
+    animation: fadeIn 0.4s ease both;
+  }
+  .session-ended.visible {
+    display: block;
+  }
+
+  /* ── Titlebar ── */
   .titlebar {
     background: var(--border);
     padding: 0.5rem 1rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    flex-shrink: 0;
   }
 
+  /* ── Traffic-light dots ── */
   .dot {
     width: 10px; height: 10px;
     border-radius: 50%;
+    cursor: pointer;
+    position: relative;
+    transition: filter 0.15s ease;
+    /* icon glyphs hidden by default, shown on titlebar hover */
   }
+  .dot::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 7px;
+    line-height: 10px;
+    text-align: center;
+    color: rgba(0,0,0,0.55);
+    font-weight: 900;
+    opacity: 0;
+    transition: opacity 0.1s ease;
+  }
+  .dot.red::after    { content: '✕'; }
+  .dot.yellow::after { content: '−'; }
+  .dot.green::after  { content: '+'; }
+
+  /* Show icons on titlebar hover (Mac behaviour) */
+  .titlebar:hover .dot::after { opacity: 1; }
+
   .dot.red    { background: #ff5f57; }
   .dot.yellow { background: #febc2e; }
   .dot.green  { background: #28c840; }
+
+  .dot.red:hover    { filter: brightness(1.2); }
+  .dot.yellow:hover { filter: brightness(1.2); }
+  .dot.green:hover  { filter: brightness(1.2); }
+
+  /* Active press feedback */
+  .dot:active { filter: brightness(0.75) !important; transform: scale(0.88); }
 
   .titlebar-label {
     flex: 1;
@@ -70,10 +165,19 @@
     font-size: 0.7rem;
     color: var(--dim);
     letter-spacing: 0.1em;
+    transition: opacity 0.3s;
   }
 
+  /* ── Body ── */
   .body {
     padding: 2rem 2rem 2.5rem;
+    transition:
+      max-height 0.35s cubic-bezier(0.4,0,0.2,1),
+      padding 0.35s cubic-bezier(0.4,0,0.2,1),
+      opacity 0.25s ease;
+    max-height: 600px;
+    opacity: 1;
+    overflow: hidden;
   }
 
   .prompt {
@@ -141,14 +245,14 @@
 </style>
 </head>
 <body>
-  <div class="terminal">
-    <div class="titlebar">
-      <div class="dot red"></div>
-      <div class="dot yellow"></div>
-      <div class="dot green"></div>
+  <div class="terminal" id="terminal">
+    <div class="titlebar" id="titlebar">
+      <div class="dot red"    id="btn-close"    title="Close"></div>
+      <div class="dot yellow" id="btn-minimize" title="Minimize"></div>
+      <div class="dot green"  id="btn-maximize" title="Maximize"></div>
       <div class="titlebar-label">shaunriley.net — bash</div>
     </div>
-    <div class="body">
+    <div class="body" id="body">
       <div class="prompt"><span>root@localhost</span>:~# ./website.sh</div>
       <h1>shaunriley.net</h1>
       <p class="tagline">it was cheaper than .com.<span class="cursor"></span></p>
@@ -159,5 +263,55 @@
       </div>
     </div>
   </div>
+
+  <div class="session-ended" id="session-ended">
+    [process exited]<br>session terminated.
+  </div>
+
+<script>
+  const terminal  = document.getElementById('terminal');
+  const sessionMsg = document.getElementById('session-ended');
+
+  let isMinimized = false;
+  let isMaximized = false;
+
+  /* ── Close ── */
+  document.getElementById('btn-close').addEventListener('click', () => {
+    terminal.classList.add('closed');
+    setTimeout(() => {
+      terminal.style.display = 'none';
+      sessionMsg.classList.add('visible');
+    }, 280);
+  });
+
+  /* ── Minimize ── */
+  document.getElementById('btn-minimize').addEventListener('click', () => {
+    if (isMaximized) return; // ignore while maximized, like real macOS
+    isMinimized = !isMinimized;
+    terminal.classList.toggle('minimized', isMinimized);
+  });
+
+  /* ── Maximize / restore ── */
+  document.getElementById('btn-maximize').addEventListener('click', () => {
+    if (isMinimized) {
+      // restore from minimized first
+      isMinimized = false;
+      terminal.classList.remove('minimized');
+    }
+    isMaximized = !isMaximized;
+    terminal.classList.toggle('maximized', isMaximized);
+  });
+
+  /* Double-click titlebar to maximize (classic Mac behaviour) */
+  document.getElementById('titlebar').addEventListener('dblclick', (e) => {
+    if (e.target.classList.contains('dot')) return;
+    isMaximized = !isMaximized;
+    terminal.classList.toggle('maximized', isMaximized);
+    if (isMaximized && isMinimized) {
+      isMinimized = false;
+      terminal.classList.remove('minimized');
+    }
+  });
+</script>
 </body>
 </html>
