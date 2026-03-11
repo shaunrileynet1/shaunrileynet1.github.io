@@ -312,6 +312,71 @@
       terminal.classList.remove('minimized');
     }
   });
+
+  /* ── Konami code easter egg ── */
+  const KONAMI = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+  let konamiPos = 0;
+  let konamiDone = false;
+
+  document.addEventListener('keydown', (e) => {
+    if (konamiDone) return;
+    if (e.key === KONAMI[konamiPos]) {
+      konamiPos++;
+      if (konamiPos === KONAMI.length) {
+        konamiDone = true;
+        triggerEasterEgg();
+      }
+    } else {
+      konamiPos = e.key === KONAMI[0] ? 1 : 0;
+    }
+  });
+
+  function triggerEasterEgg() {
+    const output = document.querySelector('.output');
+
+    // new prompt line
+    const promptLine = document.createElement('div');
+    promptLine.style.marginTop = '0.8rem';
+    promptLine.style.color = 'var(--dim)';
+    promptLine.style.fontSize = '0.75rem';
+    promptLine.innerHTML = '<span style="color:#ff5f57">root@localhost</span>:~# ls -la';
+    output.appendChild(promptLine);
+
+    // ls output lines, revealed one at a time
+    const lines = [
+      'total 0',
+      'drwxr-xr-x  2 root root   40 Jan  1 00:00 <span style="color:var(--accent)">.</span>',
+      'drwxr-xr-x 18 root root  360 Jan  1 00:00 <span style="color:var(--accent)">..</span>',
+      '-rwxr-xr-x  1 root root    0 Jan  1 00:00 <span style="color:var(--text)">website.sh</span>',
+      '<span style="color:var(--dim); font-style:italic"># that\'s it. there is nothing else.</span>',
+    ];
+
+    lines.forEach((line, i) => {
+      setTimeout(() => {
+        const el = document.createElement('div');
+        el.style.fontSize = '0.75rem';
+        el.style.color = 'var(--dim)';
+        el.style.lineHeight = '1.8';
+        el.style.opacity = '0';
+        el.style.transition = 'opacity 0.2s ease';
+        el.innerHTML = line;
+        output.appendChild(el);
+        requestAnimationFrame(() => { el.style.opacity = '1'; });
+
+        // final cursor prompt after last line
+        if (i === lines.length - 1) {
+          setTimeout(() => {
+            const cursor = document.createElement('div');
+            cursor.style.marginTop = '0.4rem';
+            cursor.style.fontSize = '0.75rem';
+            cursor.style.color = 'var(--dim)';
+            cursor.innerHTML = '<span style="color:#ff5f57">root@localhost</span>:~# <span class="cursor"></span>';
+            output.appendChild(cursor);
+          }, 200);
+        }
+      }, i * 120);
+    });
+  }
 </script>
 </body>
 </html>
