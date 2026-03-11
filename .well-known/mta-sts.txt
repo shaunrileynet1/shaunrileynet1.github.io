@@ -1,1 +1,5 @@
-
+version: STSv1
+mode: enforce
+mx: 5cb3729a.21.ik2.com
+mx: 5cb3729a.22.ik2.io
+max_age: 86400
