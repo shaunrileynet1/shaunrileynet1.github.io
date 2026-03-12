@@ -399,7 +399,8 @@
 
     // Check for special commands first
     if (cmd.toLowerCase() === 'help') {
-      addLine('info', 'command recognized. have you tried turning it off and back on again?');
+      addLine('err', 'bash: help: none found. if you find some, let me know.');
+      addLine('info', 'have you tried turning it off and back on again?');
     } else {
       // Pick the right response
       const idx = Math.min(enterCount, responses.length - 1);
