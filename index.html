@@ -571,22 +571,6 @@
     e.preventDefault();
   });
 
-  document.addEventListener('mousemove', (e) => {
-    if (!isDragging) return;
-    const rect = terminal.getBoundingClientRect();
-    const newLeft = Math.min(Math.max(0, e.clientX - dragOffsetX), window.innerWidth - rect.width);
-    const newTop  = Math.min(Math.max(0, e.clientY - dragOffsetY), window.innerHeight - 40);
-    terminal.style.left = newLeft + 'px';
-    terminal.style.top  = newTop + 'px';
-  });
-
-  document.addEventListener('mouseup', () => {
-    if (!isDragging) return;
-    isDragging = false;
-    terminal.classList.remove('dragging');
-    cmdInput.focus();
-  });
-
   /* ── Resize handle ── */
   const resizeHandle = document.getElementById('resize-handle');
   let isResizing = false;
@@ -602,29 +586,42 @@
     resizeStartY = e.clientY;
     resizeStartW = terminal.offsetWidth;
     resizeStartH = terminal.offsetHeight;
-    terminal.classList.add('dragging'); // disable transitions
+    terminal.classList.add('dragging');
     e.preventDefault();
     e.stopPropagation();
   });
 
+  /* ── Unified mousemove and mouseup handlers ── */
   document.addEventListener('mousemove', (e) => {
-    if (!isResizing) return;
-    const rect = terminal.getBoundingClientRect();
-    const maxW = window.innerWidth - rect.left;
-    const maxH = window.innerHeight - rect.top;
-    const newW = Math.min(maxW, Math.max(320, resizeStartW + (e.clientX - resizeStartX)));
-    const newH = Math.min(maxH, Math.max(200, resizeStartH + (e.clientY - resizeStartY)));
-    terminal.style.width = newW + 'px';
-    terminal.style.maxWidth = newW + 'px';
-    terminal.style.height = newH + 'px';
-    terminal.querySelector('.body').style.maxHeight = (newH - 36) + 'px';
+    if (isDragging) {
+      const rect = terminal.getBoundingClientRect();
+      const newLeft = Math.min(Math.max(0, e.clientX - dragOffsetX), window.innerWidth - rect.width);
+      const newTop  = Math.min(Math.max(0, e.clientY - dragOffsetY), window.innerHeight - 40);
+      terminal.style.left = newLeft + 'px';
+      terminal.style.top  = newTop + 'px';
+    }
+
+    if (isResizing) {
+      const rect = terminal.getBoundingClientRect();
+      const maxW = window.innerWidth - rect.left;
+      const maxH = window.innerHeight - rect.top;
+      const newW = Math.min(maxW, Math.max(320, resizeStartW + (e.clientX - resizeStartX)));
+      const newH = Math.min(maxH, Math.max(200, resizeStartH + (e.clientY - resizeStartY)));
+      const titlebarHeight = document.getElementById('titlebar').offsetHeight;
+      terminal.style.width = newW + 'px';
+      terminal.style.maxWidth = newW + 'px';
+      terminal.style.height = newH + 'px';
+      terminal.querySelector('.body').style.maxHeight = (newH - titlebarHeight) + 'px';
+    }
   });
 
-  document.addEventListener('mouseup', (e) => {
-    if (!isResizing) return;
-    isResizing = false;
-    terminal.classList.remove('dragging');
-    cmdInput.focus();
+  document.addEventListener('mouseup', () => {
+    if (isDragging || isResizing) {
+      isDragging = false;
+      isResizing = false;
+      terminal.classList.remove('dragging');
+      cmdInput.focus();
+    }
   });
 
   /* ── Konami code easter egg ── */
