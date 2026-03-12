@@ -397,11 +397,16 @@
     echo.innerHTML = `<span class="ps1">root@localhost:~#</span> ${escapeHtml(cmd)}`;
     log.appendChild(echo);
 
-    // Pick the right response
-    const idx = Math.min(enterCount, responses.length - 1);
-    const lines = responses[idx](cmd);
-    lines.forEach(l => addLine(l.cls, l.text));
-    enterCount++;
+    // Check for special commands first
+    if (cmd.toLowerCase() === 'help') {
+      addLine('info', 'command recognized. have you tried turning it off and back on again?');
+    } else {
+      // Pick the right response
+      const idx = Math.min(enterCount, responses.length - 1);
+      const lines = responses[idx](cmd);
+      lines.forEach(l => addLine(l.cls, l.text));
+      enterCount++;
+    }
 
     // Scroll into view
     log.scrollTop = log.scrollHeight;
