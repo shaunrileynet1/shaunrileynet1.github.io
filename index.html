@@ -473,6 +473,7 @@
   });
 
   /* ── Window controls ── */
+  document.getElementById('btn-close').addEventListener('mousedown', (e) => { e.preventDefault(); });
   document.getElementById('btn-close').addEventListener('click', () => {
     isClosed = true;
     terminal.classList.add('closed');
@@ -493,12 +494,14 @@
     terminal.querySelector('.body').style.maxHeight = '';
   }
 
+  document.getElementById('btn-minimize').addEventListener('mousedown', (e) => { e.preventDefault(); });
   document.getElementById('btn-minimize').addEventListener('click', () => {
     if (isMaximized) return;
     isMinimized = !isMinimized;
     terminal.classList.toggle('minimized', isMinimized);
   });
 
+  document.getElementById('btn-maximize').addEventListener('mousedown', (e) => { e.preventDefault(); });
   document.getElementById('btn-maximize').addEventListener('click', () => {
     if (isMinimized) {
       isMinimized = false;
